@@ -1,54 +1,80 @@
 #! /bin/bash
+
+# Checks to see if the current user is root.
+# If it's not root, the script restarts itself through sudo.
+[[ $UID = 0 ]] || exec sudo "$0"
+
+# Script Variables
+TIME="$(date +%T)"
 DAY="$(date +%d)"
 MONTH="$(date +%m)"
 YEAR="$(date +%Y)"
-LOGLOC="/var/log/backup/weekly"
-LOGFILE="$LOGLOC/$YEAR/$MONTH/$YEAR.$MONTH.$DAY.log"
-EXCLUDEFILE="/opt/backupscripts/backup-exclude"
+
+# Track the script time
+STARTTIME="$(date +%s)"
+
+LOGFILE="/var/log/backup/weekly/$YEAR-$MONTH-$DAY.log"
+
+EXCLUDEFILE="/opt/scripts/backupscripts/backup-exclude"
 BACKUPLOC="/backup/weekly"
 
-logger -p syslog.info "Starting Weekly Backup - $YEAR-$MONTH-$DAY"
+DUCMD="du -hs"
 
-if [ ! -d "$LOGLOC/$YEAR/$MONTH/" ]; then
-	echo "Creating $LOGLOC/$YEAR/$MONTH/"
-	mkdir -p "$LOGLOC/$YEAR/$MONTH/"
-fi
+SOURCES=(
+	"/backup/daily/"
+)
+
+BACKUPS=(
+	"$BACKUPLOC/"
+)
+
+logger -t WeeklyBackup -p syslog.notice "Weekly Backup: Starting - $YEAR-$MONTH-$DAY $TIME"
 
 if [ ! -d "$BACKUPLOC" ]; then
-	echo "Creating $BACKUPLOC"
-	mkdir -p "$BACKUPLOC"
+        echo "Creating $BACKUPLOC"
+        mkdir -p "$BACKUPLOC"
 fi
 
 exec > "$LOGFILE" 2>&1
 
-#echo "To: pasula.ubuntu@gmail.com"
-#echo "From: Backups <pasula.ubuntu@gmail.com>"
-#echo -e "Subject: Generated weekly backup report for `hostname` on $YEAR.$MONTH.$DAY"
-#echo -e ">> Weekly backup for: $YEAR.$MONTH.$DAY started @ `date +%H:%M:%S`n"
-
-
-/opt/scripts/scriptheader.sh "Weekly Backup"
-
 echo "Original files:"
-sudo du -chs /backup/daily/
 echo ""
+
+$DUCMD "${SOURCES[@]}"
 
 echo "Before rsync:"
 echo ""
-sudo du -chs "/backup/weekly/"
+
+$DUCMD "${BACKUPS[@]}"
+
 echo ""
 
-sudo rsync --archive --verbose --human-readable --progress --delete --itemize-changes --delete-excluded --exclude-from="$EXCLUDEFILE" /backup/daily/ "$BACKUPLOC"
+for index in "${!SOURCES[@]}"; do
+	rsync --archive --verbose --human-readable --progress \
+	--delete --itemize-changes --delete-excluded \
+	--exclude-from="$EXCLUDEFILE" \
+	"${SOURCES[index]}" "${BACKUPS[index]}"
+
+	if [ $? -ne 0 ]; then
+		logger -t WeeklyBackup -p syslog.alert "Weekly Backup: Rsync failed with exit code $?"
+	else
+		logger -t WeeklyBackup -p syslog.info "Weekly Backup: Rsync complete for ${SOURCES[index]}"
+	fi
+done
 
 echo ""
 echo "After rsync"
-sudo du -chs "/backup/weekly/"
 echo ""
+$DUCMD "${BACKUPS[@]}"
 
-# Display time stats
-#SD=`echo -n "$SD" | grep real`
-#MIN=`echo -n "$SD" | awk '{printf substr($2,0,2)}'`
-#SEC=`echo -n "$SD" | awk '{printf substr($2,3)}'`
-#echo -e "- done [ $MIN $SEC ].n"
+echo ""
+du -chs "$BACKUPLOC"
+df -h | grep "USB$"
 
-#/usr/sbin/sendmail -t < "$LOGFILE"
+ENDTIME="$(date +%s)"
+
+RUNTIME=$((ENDTIME-STARTTIME))
+
+logger -t WeeklyBackup -p syslog.notice "Weekly Backup: Complete - Total runtime: $RUNTIME seconds."
+#logger -t WeeklyBackupDetails -p syslog.debug "Weekly Backup: Detailed backup info:"
+#logger -t WeeklyBackupDetails -p syslog.debug -f "$LOGFILE"
