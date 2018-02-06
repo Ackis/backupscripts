@@ -5,26 +5,33 @@
 [[ $UID = 0 ]] || exec sudo "$0"
 
 # Script Variables
+# When is the script being run?
+# I also want to name the logs individually based on date.
+# There's probably an easier/faster way to do this.
 TIME="$(date +%T)"
 DAY="$(date +%d)"
 MONTH="$(date +%m)"
 YEAR="$(date +%Y)"
 
-# Track the script time
+# Track the script time - I want to see how long it takes to run.
 STARTTIME="$(date +%s)"
 
+# Where are we going to store the log files?
 LOGFILE="/var/log/backup/daily/$YEAR-$MONTH-$DAY.log"
 
+# List of files that we don't want to backup.
 EXCLUDEFILE="/opt/scripts/backupscripts/backup-exclude"
+
+# Where are we going to store the backup files?
 BACKUPLOC="/backup/daily"
 
+# I also want to check the file size before and after the backup.
 DUCMD="du -hs"
 
 SOURCES=(
 	"/home/"
 	"/media/Home Movies/"
 	"/media/Pictures/"
-	"/media/Youtube Videos/"
 	"/opt/"
 	"/var/www"
 )
@@ -33,10 +40,12 @@ BACKUPS=(
 	"$BACKUPLOC/home/"
 	"$BACKUPLOC/Home Movies/"
 	"$BACKUPLOC/Pictures/"
-	"$BACKUPLOC/Youtube Videos/"
 	"$BACKUPLOC/opt"
 	"$BACKUPLOC/var/www"
 )
+
+# Display the output to the screen and log file at the same time.
+exec > >(tee "$LOGFILE") 2>&1
 
 logger -t DailyBackup -p syslog.notice "Daily Backup: Starting - $YEAR-$MONTH-$DAY $TIME"
 
