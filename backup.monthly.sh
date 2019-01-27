@@ -4,15 +4,15 @@ DAY="$(date +%d)"
 MONTH="$(date +%m)"
 YEAR="$(date +%Y)"
 
-LOGLOC="/var/log/backup/monthly"
+LOGLOC="/var/log/backup/monthly/"
 LOGFILE="$LOGLOC/$YEAR.$MONTH.$DAY.log"
-BACKUPLOC="/backup/monthly"
+BACKUPLOC="/backup/monthly/"
 
 logger -p syslog.info "Starting Monthly Backup - $YEAR-$MONTH-$DAY"
 
-if [ ! -d "$LOGLOC/$YEAR/$MONTH/" ]; then
+if [ ! -d "$LOGLOC" ]; then
 	echo "Creating $LOGLOC/$YEAR/$MONTH/"
-	mkdir -p "$LOGLOC/$YEAR/$MONTH/"
+	mkdir -p "$LOGLOC"
 fi
 
 if [ ! -d "$BACKUPLOC" ]; then
@@ -31,16 +31,17 @@ exec > "$LOGFILE" 2>&1
 
 echo "Original files:"
 echo ""
-sudo du -hs "/backup/daily"
+sudo du -hs "/backup/daily/"
 echo ""
 
 echo "Before rsync:"
 echo ""
-sudo du -chs "/backup/monthly/"
+sudo du -chs "${BACKUPLOC}"
 echo ""
 
 # Perform the backup and get time stats
-SD=$( { time tar -cpPzf "$BACKUPLOC/$YEAR.$MONTH.$DAY.tar.gz" /backup/daily/; } 2>&1 )
+#echo tar -cpPzf "$BACKUPLOC$YEAR.$MONTH.$DAY.tar.gz" /backup/daily/
+SD=$( { time tar -hcpPzf "$BACKUPLOC$YEAR.$MONTH.$DAY.tar.gz" /backup/daily/; } 2>&1 )
 
 # Display time stats
 SD=`echo -n "$SD" | grep real`
@@ -50,7 +51,7 @@ echo -e "- done [ $MIN $SEC ].n"
 
 echo ""
 echo "After rsync"
-sudo du -chs "/backup/monthly/"
+sudo du -chs "${BACKUPLOC}"
 echo ""
 
 #/usr/sbin/sendmail -t < "$LOGFILE"

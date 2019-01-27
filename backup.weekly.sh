@@ -16,7 +16,7 @@ STARTTIME="$(date +%s)"
 LOGFILE="/var/log/backup/weekly/$YEAR-$MONTH-$DAY.log"
 
 EXCLUDEFILE="/opt/scripts/backupscripts/backup-exclude"
-BACKUPLOC="/backup/weekly"
+BACKUPLOC="/backup/weekly/"
 
 DUCMD="du -hs"
 
@@ -25,7 +25,7 @@ SOURCES=(
 )
 
 BACKUPS=(
-	"$BACKUPLOC/"
+	"$BACKUPLOC"
 )
 
 logger -t WeeklyBackup -p syslog.notice "Weekly Backup: Starting - $YEAR-$MONTH-$DAY $TIME"

@@ -23,7 +23,7 @@ LOGFILE="/var/log/backup/daily/$YEAR-$MONTH-$DAY.log"
 EXCLUDEFILE="/opt/scripts/backupscripts/backup-exclude"
 
 # Where are we going to store the backup files?
-BACKUPLOC="/backup/daily"
+BACKUPLOC="/backup/daily/"
 
 # I also want to check the file size before and after the backup.
 DUCMD="du -hs"
