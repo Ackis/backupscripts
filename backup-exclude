@@ -38,28 +38,3 @@ NextCloud
 # Git
 .git
 
-# Programs in /opt
-ArchiSteamFarm
-bootinfo
-calibre
-couchpotato
-datacrow
-headphones
-metaploit
-minecraft
-mylar
-nikto
-NzbDrone
-ombi
-plexpy
-radarr
-Radarr
-sabnzbd
-sonarr
-steam
-transmission
-ubooquity
-
-# Prgram web-pages
-organizr
-webalizer
