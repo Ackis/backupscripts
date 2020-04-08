@@ -13,6 +13,9 @@ DAY="$(date +%d)"
 MONTH="$(date +%m)"
 YEAR="$(date +%Y)"
 
+# Internal script variables
+SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Track the script time - I want to see how long it takes to run.
 STARTTIME="$(date +%s)"
 
@@ -20,7 +23,10 @@ STARTTIME="$(date +%s)"
 LOGFILE="/var/log/backup/daily/$YEAR-$MONTH-$DAY.log"
 
 # List of files that we don't want to backup.
-EXCLUDEFILE="/opt/scripts/backupscripts/backup-exclude"
+EXCLUDEFILE="${SCRIPT_PATH}/backup-exclude"
+
+# List of directories that we want to backup.
+INCLUDEFILE="${SCRIPT_PATH}/backup-includef"
 
 # Where are we going to store the backup files?
 BACKUPLOC="/backup/daily/"
@@ -28,13 +34,17 @@ BACKUPLOC="/backup/daily/"
 # I also want to check the file size before and after the backup.
 DUCMD="du -hs"
 
-SOURCES=(
-	"/home/"
-	"/media/Home Movies/"
-	"/media/Pictures/"
-	"/opt/"
-	"/var/www"
-)
+if [ -f "INCLUDEFILE" ]; then
+	readarray -t SOURCES < "INCLUDEFILE"
+else
+	SOURCES=(
+		"/home/"
+		"/media/Home Movies/"
+		"/media/Pictures/"
+		"/opt/"
+		"/var/www"
+	)
+fi
 
 BACKUPS=(
 	"$BACKUPLOC/home/"
