@@ -26,7 +26,7 @@ LOGFILE="/var/log/backup/daily/$YEAR-$MONTH-$DAY.log"
 EXCLUDEFILE="${SCRIPT_PATH}/backup-exclude"
 
 # List of directories that we want to backup.
-INCLUDEFILE="${SCRIPT_PATH}/backup-includef"
+INCLUDEFILE="${SCRIPT_PATH}/backup-include"
 
 # Where are we going to store the backup files?
 BACKUPLOC="/backup/daily/"
@@ -34,30 +34,26 @@ BACKUPLOC="/backup/daily/"
 # I also want to check the file size before and after the backup.
 DUCMD="du -hs"
 
-if [ -f "INCLUDEFILE" ]; then
-	readarray -t SOURCES < "INCLUDEFILE"
+if [ -f "${INCLUDEFILE}" ]; then
+	readarray -t SOURCES < "${INCLUDEFILE}"
 else
+	logger -t DailyBackup -p syslog.error "Daily Backup: No backup-include file found, using defaults."
+	echo "Daily Backup: No backup-include file found, using defaults."
+
 	SOURCES=(
 		"/home/"
 		"/media/Home Movies/"
 		"/media/Pictures/"
 		"/opt/"
-		"/var/www"
+		"/var/www/"
 	)
 fi
-
-BACKUPS=(
-	"$BACKUPLOC/home/"
-	"$BACKUPLOC/Home Movies/"
-	"$BACKUPLOC/Pictures/"
-	"$BACKUPLOC/opt"
-	"$BACKUPLOC/var/www"
-)
 
 # Display the output to the screen and log file at the same time.
 exec > >(tee "$LOGFILE") 2>&1
 
 logger -t DailyBackup -p syslog.notice "Daily Backup: Starting - $YEAR-$MONTH-$DAY $TIME"
+echo "Daily Backup: Starting - $YEAR-$MONTH-$DAY $TIME"
 
 if [ ! -d "$BACKUPLOC" ]; then
         echo "Creating $BACKUPLOC"
@@ -74,16 +70,22 @@ $DUCMD "${SOURCES[@]}"
 echo "Before rsync:"
 echo ""
 
-$DUCMD "${BACKUPS[@]}"
+$DUCMD "${BACKUPLOC}"
 
 echo ""
 
 for index in "${!SOURCES[@]}"; do
-	rsync --archive --verbose --human-readable --progress \
-	--delete --itemize-changes --delete-excluded \
-	--owner --group --exclude-from="$EXCLUDEFILE" \
-	"${SOURCES[index]}" "${BACKUPS[index]}"
+	TARGET="${BACKUPLOC}${SOURCES[index]}"
+	# We get a // in the TARGET so lets remove it with regexp.
+	# https://stackoverflow.com/questions/13043344/search-and-replace-in-bash-using-regular-expressions
+	TARGET="${TARGET//\/\//\/}"
 
+echo	rsync --archive --verbose --human-readable --progress \
+echo	--delete --itemize-changes --delete-excluded \
+echo	--owner --group --exclude-from="$EXCLUDEFILE" \
+echo	"${SOURCES[index]}" "${TARGET}"
+
+	# Check to see if rsync ran properly.
 	if [ $? -ne 0 ]; then
 		logger -t DailyBackup -p syslog.alert "Daily Backup: Rsync failed with exit code $?"
 	else
