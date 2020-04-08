@@ -80,10 +80,10 @@ for index in "${!SOURCES[@]}"; do
 	# https://stackoverflow.com/questions/13043344/search-and-replace-in-bash-using-regular-expressions
 	TARGET="${TARGET//\/\//\/}"
 
-echo	rsync --archive --verbose --human-readable --progress \
-echo	--delete --itemize-changes --delete-excluded \
-echo	--owner --group --exclude-from="$EXCLUDEFILE" \
-echo	"${SOURCES[index]}" "${TARGET}"
+	rsync --archive --verbose --human-readable --progress \
+	--delete --itemize-changes --delete-excluded \
+	--owner --group --exclude-from="$EXCLUDEFILE" \
+	"${SOURCES[index]}" "${TARGET}"
 
 	# Check to see if rsync ran properly.
 	if [ $? -ne 0 ]; then
