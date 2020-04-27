@@ -34,12 +34,16 @@ BACKUPLOC="/backup/daily/"
 # I also want to check the file size before and after the backup.
 DUCMD="du -hs"
 
+# Reference common script functions
+source /opt/scripts/misc/common.sh
+
+# Display the output to the screen and log file at the same time.
+exec > >(tee "$LOGFILE") 2>&1
+
 if [ -f "${INCLUDEFILE}" ]; then
 	readarray -t SOURCES < "${INCLUDEFILE}"
 else
-	logger -t DailyBackup -p syslog.error "Daily Backup: No backup-include file found, using defaults."
-	echo "Daily Backup: No backup-include file found, using defaults."
-
+	print_and_log "Daily Backup: No backup-include file found, using defaults." "DailyBackup" "error"
 	SOURCES=(
 		"/home/"
 		"/media/Home Movies/"
@@ -49,31 +53,22 @@ else
 	)
 fi
 
-# Display the output to the screen and log file at the same time.
-exec > >(tee "$LOGFILE") 2>&1
-
-logger -t DailyBackup -p syslog.notice "Daily Backup: Starting - $YEAR-$MONTH-$DAY $TIME"
-echo "Daily Backup: Starting - $YEAR-$MONTH-$DAY $TIME"
+print_and_log "Daily Backup: Starting - $YEAR-$MONTH-$DAY $TIME" "DailyBackup" "info"
 
 if [ ! -d "$BACKUPLOC" ]; then
-        echo "Creating $BACKUPLOC"
-        mkdir -p "$BACKUPLOC"
+	print_and_log "Daily Backup: Creating $BACKUPLOC" "DailyBackup" "info"
+	mkdir -p "$BACKUPLOC"
 fi
 
-exec > "$LOGFILE" 2>&1
+print_and_log "Original files:" "DailyBackup" "info"
 
-echo "Original files:"
-echo ""
+$DUCMD "${SOURCES[@]}" # How to get this output into print_and_log?
 
-$DUCMD "${SOURCES[@]}"
+print_and_log "Before rsync:" "DailyBackup" "info"
 
-echo "Before rsync:"
-echo ""
+$DUCMD "${BACKUPLOC}" # How to get this output into print_and_log?
 
-$DUCMD "${BACKUPLOC}"
-
-echo ""
-
+# Start the actual backup
 for index in "${!SOURCES[@]}"; do
 	TARGET="${BACKUPLOC}${SOURCES[index]}"
 	# We get a // in the TARGET so lets remove it with regexp.
@@ -87,26 +82,20 @@ for index in "${!SOURCES[@]}"; do
 
 	# Check to see if rsync ran properly.
 	if [ $? -ne 0 ]; then
-		logger -t DailyBackup -p syslog.alert "Daily Backup: Rsync failed with exit code $?"
+		print_and_log "Daily Backup: Rsync failed with exit code $?" "DailyBackup" "alert"
 	else
-		logger -t DailyBackup -p syslog.info "Daily Backup: Rsync complete for ${SOURCES[index]}"
+		print_and_log "Daily Backup: Rsync complete for ${SOURCES[index]}" "DailyBackup" "info"
 	fi
 done
 
-echo ""
-echo "After rsync"
-echo ""
+print_and_log "After rsync" "DailyBackup" "info"
 $DUCMD "${BACKUPS[@]}"
-
-echo ""
-du -chs "$BACKUPLOC"
-df -h | grep "USB$"
+du -chs "$BACKUPLOC" # How to get this output into print_and_log?
 
 ENDTIME="$(date +%s)"
 
 RUNTIME=$((ENDTIME-STARTTIME))
 
-logger -t DailyBackup -p syslog.notice "Daily Backup: Complete - Total runtime: $RUNTIME seconds."
-logger -t DailyBackupDetails -p syslog.debug "Daily Backup: Detailed backup info:"
-logger -t DailyBackupDetails -p syslog.debug -f "$LOGFILE"
-#rm "$LOGFILE"
+print_and_log "Daily Backup: Complete - Total runtime: $RUNTIME seconds." "DailyBackup" "debug"
+print_and_log "Daily Backup: Detailed backup info:" "DailyBackup" "debug"
+print_and_log "$LOGFILE" "DailyBackup" "debug"
