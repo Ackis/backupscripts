@@ -81,6 +81,8 @@ for index in "${!SOURCES[@]}"; do
 	"${SOURCES[index]}" "${TARGET}"
 
 	# Check to see if rsync ran properly.
+	# SC2181: Check exit code directly with e.g. 'if mycmd;', not indirectly with $?.
+	# Not exactly sure what that means
 	if [ $? -ne 0 ]; then
 		print_and_log "Daily Backup: Rsync failed with exit code $?" "DailyBackup" "alert"
 	else
